@@ -131,8 +131,8 @@ func CreateMerchantOrder(c *gin.Context) {
 				Type:            model.OrderTypePayment,
 				Remark:          req.Remark,
 				PaymentType:     req.PaymentType,
+				RedirectURI:     req.ReturnURL,
 				NotifyURL:       req.NotifyURL,
-				ReturnURL:       req.ReturnURL,
 				ExpiresAt:       time.Now().Add(time.Duration(expireMinutes) * time.Minute),
 			}
 			if err := tx.Create(&order).Error; err != nil {
@@ -493,7 +493,7 @@ func GetPaymentPageDetails(c *gin.Context) {
 		return
 	}
 
-	redirectURI := cmp.Or(order.ReturnURL, merchant.RedirectURI)
+	redirectURI := cmp.Or(order.RedirectURI, merchant.RedirectURI)
 
 	c.JSON(http.StatusOK, util.OK(GetOrderResponse{
 		Order:   &order,
