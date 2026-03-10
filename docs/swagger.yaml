@@ -225,6 +225,8 @@ definitions:
         maxLength: 64
         minLength: 1
         type: string
+      notify_url:
+        type: string
       order_name:
         maxLength: 64
         type: string
@@ -232,6 +234,8 @@ definitions:
         type: string
       remark:
         maxLength: 100
+        type: string
+      return_url:
         type: string
     required:
     - amount

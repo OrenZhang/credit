@@ -2107,6 +2107,9 @@ const docTemplate = `{
                     "maxLength": 64,
                     "minLength": 1
                 },
+                "notify_url": {
+                    "type": "string"
+                },
                 "order_name": {
                     "type": "string",
                     "maxLength": 64
@@ -2117,6 +2120,9 @@ const docTemplate = `{
                 "remark": {
                     "type": "string",
                     "maxLength": 100
+                },
+                "return_url": {
+                    "type": "string"
                 }
             }
         },

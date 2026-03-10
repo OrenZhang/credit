@@ -36,6 +36,8 @@ type CreateOrderRequest struct {
 	Amount          decimal.Decimal `json:"amount" binding:"required"`
 	Remark          string          `json:"remark" binding:"max=100"`
 	PaymentType     string          `json:"payment_type"`
+	NotifyURL       string          `json:"notify_url,omitempty"`
+	ReturnURL       string          `json:"return_url,omitempty"`
 }
 
 // EPayRequest 易支付请求
@@ -44,8 +46,8 @@ type EPayRequest struct {
 	OrderName       string          `form:"name" binding:"required,max=64"`
 	MerchantOrderNo *string         `form:"out_trade_no" binding:"required,min=1,max=64"`
 	Amount          decimal.Decimal `form:"money" binding:"required"`
-	NotifyURL       string          `form:"notify_url"`
-	ReturnURL       string          `form:"return_url"`
+	NotifyURL       string          `form:"notify_url" binding:"omitempty,max=100,url"`
+	ReturnURL       string          `form:"return_url" binding:"omitempty,max=100,url"`
 	Device          string          `form:"device"`
 	Sign            string          `form:"sign" binding:"required"`
 	PayType         string          `form:"type" binding:"required"`
@@ -58,17 +60,21 @@ type LDCPayRequest struct {
 	OrderName       string          `form:"order_name" binding:"required,max=64"`
 	MerchantOrderNo *string         `form:"out_trade_no" binding:"required,min=1,max=64"`
 	Amount          decimal.Decimal `form:"money" binding:"required"`
+	NotifyURL       string          `form:"notify_url" binding:"omitempty,max=100,url"`
+	ReturnURL       string          `form:"return_url" binding:"omitempty,max=100,url"`
 	PayType         string          `form:"type" binding:"required"`
 	Sign            string          `form:"sign" binding:"required"`
 }
 
 // NewCreateOrderRequest 从支付请求创建通用订单请求
-func NewCreateOrderRequest(orderName string, merchantOrderNo *string, amount decimal.Decimal, payType string) *CreateOrderRequest {
+func NewCreateOrderRequest(orderName string, merchantOrderNo *string, amount decimal.Decimal, payType string, notifyURL string, returnURL string) *CreateOrderRequest {
 	return &CreateOrderRequest{
 		OrderName:       orderName,
 		MerchantOrderNo: merchantOrderNo,
 		Amount:          amount,
 		PaymentType:     payType,
+		NotifyURL:       notifyURL,
+		ReturnURL:       returnURL,
 	}
 }
 
