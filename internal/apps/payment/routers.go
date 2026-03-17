@@ -381,10 +381,14 @@ func MerchantDistribute(c *gin.Context) {
 			return errors.New(CannotTransferToSelf)
 		}
 
-		// 获取商户支付配置（用于计算分发费率和分数）
+		// 获取商户支付配置
 		var merchantPayConfig model.UserPayConfig
 		if err := merchantPayConfig.GetByPayScore(tx, merchantUser.PayScore); err != nil {
 			return errors.New(PayConfigNotFound)
+		}
+
+		if err := service.CheckDailyLimit(tx, merchantUser.ID, req.Amount, merchantPayConfig.DailyLimit); err != nil {
+			return err
 		}
 
 		_, recipientAmount, distributePercent := service.CalculateFee(req.Amount, merchantPayConfig.DistributeRate)
@@ -669,21 +673,20 @@ func Transfer(c *gin.Context) {
 				return err
 			}
 
-			var payer model.User
-			if err := tx.Clauses(clause.Locking{Strength: "UPDATE", Options: "NOWAIT"}).
-				Where("id = ?", currentUser.ID).
-				First(&payer).Error; err != nil {
+			// 获取转账人支付配置
+			var payerPayConfig model.UserPayConfig
+			if err := payerPayConfig.GetByPayScore(tx, currentUser.PayScore); err != nil {
 				return err
 			}
 
-			if payer.AvailableBalance.LessThan(req.Amount) {
-				return errors.New(common.InsufficientBalance)
+			if err := service.CheckDailyLimit(tx, currentUser.ID, req.Amount, payerPayConfig.DailyLimit); err != nil {
+				return err
 			}
 
 			// 创建转账订单
 			order := model.Order{
 				OrderName:   "转账",
-				PayerUserID: payer.ID,
+				PayerUserID: currentUser.ID,
 				PayeeUserID: recipient.ID,
 				Amount:      req.Amount,
 				Status:      model.OrderStatusSuccess,
@@ -698,22 +701,24 @@ func Transfer(c *gin.Context) {
 			}
 
 			// 扣减付款人余额
-			if err := tx.Model(&model.User{}).
-				Where("id = ?", payer.ID).
-				UpdateColumns(map[string]interface{}{
-					"available_balance": gorm.Expr("available_balance - ?", req.Amount),
-					"total_transfer":    gorm.Expr("total_transfer + ?", req.Amount),
-				}).Error; err != nil {
+			if err := service.UpdateBalance(tx, service.BalanceUpdateOptions{
+				UserID:       currentUser.ID,
+				Amount:       req.Amount,
+				Operation:    service.BalanceDeduct,
+				TotalField:   "total_transfer",
+				CheckBalance: true,
+			}); err != nil {
 				return err
 			}
 
 			// 增加收款人余额
-			if err := tx.Model(&model.User{}).
-				Where("id = ?", recipient.ID).
-				UpdateColumns(map[string]interface{}{
-					"available_balance": gorm.Expr("available_balance + ?", req.Amount),
-					"total_receive":     gorm.Expr("total_receive + ?", req.Amount),
-				}).Error; err != nil {
+			if err := service.UpdateBalance(tx, service.BalanceUpdateOptions{
+				UserID:       recipient.ID,
+				Amount:       req.Amount,
+				Operation:    service.BalanceAdd,
+				TotalField:   "total_receive",
+				CheckBalance: false,
+			}); err != nil {
 				return err
 			}
 

@@ -120,7 +120,7 @@ func GetTodayUsedAmount(db *gorm.DB, userID uint64) (decimal.Decimal, error) {
 		Where("payer_user_id = ? AND status = ? AND type IN ? AND trade_time >= ? AND trade_time < ?",
 			userID,
 			model.OrderStatusSuccess,
-			[]model.OrderType{model.OrderTypePayment, model.OrderTypeOnline},
+			[]model.OrderType{model.OrderTypePayment, model.OrderTypeOnline, model.OrderTypeDistribute, model.OrderTypeTransfer},
 			todayStart,
 			todayEnd).
 		Select("COALESCE(SUM(amount), 0)").
