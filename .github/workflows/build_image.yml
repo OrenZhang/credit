@@ -128,7 +128,7 @@ jobs:
   update_helm_values:
     runs-on: ubuntu-24.04
     needs: [build_image, build_frontend_image]
-    if: false
+    if: github.ref_type == 'tag'
     steps:
       # configure SSH agent with deploy key
       - name: Setup SSH agent
