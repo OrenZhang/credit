@@ -18,38 +18,28 @@ package upload
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
 )
 
-// ValidatePath 验证路径安全性，防止路径遍历攻击
-// 返回经过验证的安全路径
-func ValidatePath(basePath, targetPath string) (string, error) {
-	// 清理路径
-	cleanBase := filepath.Clean(basePath)
-	cleanTarget := filepath.Clean(targetPath)
+const maxS3KeyLength = 1024
 
-	// 获取绝对路径
-	absBase, err := filepath.Abs(cleanBase)
-	if err != nil {
-		return "", err
-	}
-	absTarget, err := filepath.Abs(cleanTarget)
-	if err != nil {
-		return "", err
+// ValidateS3Key validates an S3 object key for safety.
+func ValidateS3Key(key string) error {
+	if key == "" {
+		return fmt.Errorf("s3 key must not be empty")
 	}
 
-	// 使用 filepath.Rel 检查路径关系
-	rel, err := filepath.Rel(absBase, absTarget)
-	if err != nil {
-		return "", err
+	if len(key) > maxS3KeyLength {
+		return fmt.Errorf("s3 key exceeds maximum length of %d", maxS3KeyLength)
 	}
 
-	// 如果相对路径包含 ".."，说明目标路径在基础路径之外
-	if strings.HasPrefix(rel, "..") || strings.Contains(rel, string(filepath.Separator)+"..") {
-		return "", fmt.Errorf("path traversal detected")
+	if strings.HasPrefix(key, "/") {
+		return fmt.Errorf("s3 key must not start with /")
 	}
 
-	// 返回经过验证的绝对路径，打破污点传播
-	return absTarget, nil
+	if strings.Contains(key, "\x00") {
+		return fmt.Errorf("s3 key must not contain null bytes")
+	}
+
+	return nil
 }

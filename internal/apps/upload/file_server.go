@@ -18,13 +18,14 @@ package upload
 
 import (
 	"errors"
+	"io"
 	"net/http"
-	"os"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/linux-do/credit/internal/db"
 	"github.com/linux-do/credit/internal/model"
+	"github.com/linux-do/credit/internal/storage"
 	"gorm.io/gorm"
 )
 
@@ -54,24 +55,21 @@ func ServeFileByID(c *gin.Context) {
 		return
 	}
 
-	// Open the file
-	file, err := os.Open(upload.FilePath)
+	// Retrieve file from S3 (via CDN if configured)
+	obj, err := storage.GetObjectViaProxy(c.Request.Context(), upload.FilePath)
 	if err != nil {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
-	defer file.Close()
-
-	// Get file info
-	info, err := file.Stat()
-	if err != nil || info.IsDir() {
-		c.AbortWithStatus(http.StatusForbidden)
-		return
-	}
+	defer obj.Body.Close()
 
 	// Set caching headers (7 days)
 	c.Header("Cache-Control", "public, max-age=604800, immutable")
+	c.Header("Content-Type", obj.ContentType)
+	if obj.ContentLength > 0 {
+		c.Header("Content-Length", strconv.FormatInt(obj.ContentLength, 10))
+	}
 
-	// Serve the file with proper content type detection
-	http.ServeContent(c.Writer, c.Request, info.Name(), info.ModTime(), file)
+	c.Status(http.StatusOK)
+	io.Copy(c.Writer, obj.Body)
 }
