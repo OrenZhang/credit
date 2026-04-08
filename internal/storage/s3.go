@@ -32,6 +32,8 @@ import (
 	"github.com/linux-do/credit/internal/config"
 	"github.com/linux-do/credit/internal/otel_trace"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -98,7 +100,14 @@ func PutObject(ctx context.Context, key string, body io.Reader, size int64, cont
 	ctx, span := otel_trace.Start(ctx, "S3.PutObject", trace.WithSpanKind(trace.SpanKindClient))
 	defer span.End()
 
+	span.SetAttributes(
+		attribute.String("s3.key", key),
+		attribute.Int64("s3.content_length", size),
+		attribute.String("s3.content_type", contentType),
+	)
+
 	if !IsEnabled() {
+		span.SetStatus(codes.Error, "S3 not initialized")
 		return ErrS3InitializationFailed{}
 	}
 
@@ -112,6 +121,7 @@ func PutObject(ctx context.Context, key string, body io.Reader, size int64, cont
 
 	_, err := client.PutObject(ctx, input)
 	if err != nil {
+		span.SetStatus(codes.Error, fmt.Sprintf("S3 put object failed: %v", err))
 		return fmt.Errorf("s3 put object failed: %w", err)
 	}
 	return nil
@@ -129,7 +139,10 @@ func GetObject(ctx context.Context, key string) (*ObjectInfo, error) {
 	ctx, span := otel_trace.Start(ctx, "S3.GetObject", trace.WithSpanKind(trace.SpanKindClient))
 	defer span.End()
 
+	span.SetAttributes(attribute.String("s3.key", key))
+
 	if !IsEnabled() {
+		span.SetStatus(codes.Error, "S3 not initialized")
 		return nil, ErrS3InitializationFailed{}
 	}
 
@@ -138,6 +151,7 @@ func GetObject(ctx context.Context, key string) (*ObjectInfo, error) {
 		Key:    aws.String(key),
 	})
 	if err != nil {
+		span.SetStatus(codes.Error, fmt.Sprintf("S3 get object failed: %v", err))
 		return nil, fmt.Errorf("s3 get object failed: %w", err)
 	}
 
@@ -163,7 +177,10 @@ func GetObjectViaProxy(ctx context.Context, key string) (*ObjectInfo, error) {
 	ctx, span := otel_trace.Start(ctx, "S3.GetObjectViaProxy", trace.WithSpanKind(trace.SpanKindClient))
 	defer span.End()
 
+	span.SetAttributes(attribute.String("s3.key", key))
+
 	if !IsEnabled() {
+		span.SetStatus(codes.Error, "S3 not initialized")
 		return nil, ErrS3InitializationFailed{}
 	}
 
@@ -172,18 +189,22 @@ func GetObjectViaProxy(ctx context.Context, key string) (*ObjectInfo, error) {
 	}
 
 	url := cdnURL + "/" + key
+	span.SetAttributes(attribute.Bool("s3.use_cdn", true))
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
+		span.SetStatus(codes.Error, fmt.Sprintf("create cdn request failed: %v", err))
 		return nil, fmt.Errorf("create cdn request failed: %w", err)
 	}
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
+		span.SetStatus(codes.Error, fmt.Sprintf("cdn request failed: %v", err))
 		return nil, fmt.Errorf("cdn request failed: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		resp.Body.Close()
+		span.SetStatus(codes.Error, fmt.Sprintf("cdn returned status %d", resp.StatusCode))
 		return nil, fmt.Errorf("cdn returned status %d", resp.StatusCode)
 	}
 
@@ -204,6 +225,8 @@ func DeleteObject(ctx context.Context, key string) error {
 	ctx, span := otel_trace.Start(ctx, "S3.DeleteObject", trace.WithSpanKind(trace.SpanKindClient))
 	defer span.End()
 
+	span.SetAttributes(attribute.String("s3.key", key))
+
 	if !IsEnabled() {
 		return ErrS3InitializationFailed{}
 	}
@@ -213,6 +236,7 @@ func DeleteObject(ctx context.Context, key string) error {
 		Key:    aws.String(key),
 	})
 	if err != nil {
+		span.SetStatus(codes.Error, fmt.Sprintf("S3 delete object failed: %v", err))
 		return fmt.Errorf("s3 delete object failed: %w", err)
 	}
 	return nil
