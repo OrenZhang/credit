@@ -50,6 +50,7 @@ database:
   search_path: "public"
   statement_cache_capacity: 256
   default_query_exec_mode: "cache_statement"
+  slow_threshold: 200ms
   # replicas:
   #   - host: "replica1.db.local"
   #     port: 5432

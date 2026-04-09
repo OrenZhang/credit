@@ -16,6 +16,8 @@ limitations under the License.
 
 package config
 
+import "time"
+
 type configModel struct {
 	App        appConfig        `mapstructure:"app"`
 	OAuth2     OAuth2Config     `mapstructure:"oauth2"`
@@ -85,6 +87,7 @@ type databaseConfig struct {
 	StatementCacheCapacity int                     `mapstructure:"statement_cache_capacity"`
 	DefaultQueryExecMode   string                  `mapstructure:"default_query_exec_mode"`
 	Replicas               []databaseReplicaConfig `mapstructure:"replicas"`
+	SlowThreshold          time.Duration           `mapstructure:"slow_threshold"`
 }
 
 // databaseReplicaConfig 只读副本配置

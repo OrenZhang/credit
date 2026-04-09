@@ -28,7 +28,6 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 	"gorm.io/plugin/dbresolver"
 	"gorm.io/plugin/opentelemetry/tracing"
 )
@@ -54,20 +53,13 @@ func init() {
 		PreferSimpleProtocol: dbConfig.PreferSimpleProtocol,
 	}
 
-	// 配置 GORM Logger
-	gormLogger := logger.New(
-		log.New(log.Writer(), "\r\n", log.LstdFlags),
-		logger.Config{
-			SlowThreshold:             200 * time.Millisecond,
-			LogLevel:                  logger.Warn,
-			IgnoreRecordNotFoundError: config.Config.App.IsProduction(),
-			Colorful:                  !config.Config.App.IsProduction(),
-		},
-	)
-
 	db, err = gorm.Open(postgres.New(pgConfig), &gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: true,
-		Logger:                                   gormLogger,
+		Logger: &gormZapLogger{
+			logLevel:                  parseLogLevel(config.Config.Database.LogLevel),
+			slowThreshold:             config.Config.Database.SlowThreshold,
+			ignoreRecordNotFoundError: config.Config.App.IsProduction(),
+		},
 	})
 	if err != nil {
 		log.Fatalf("[PostgreSQL] init connection failed: %v\n", err)
