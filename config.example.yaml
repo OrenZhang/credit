@@ -148,3 +148,6 @@ s3:
   path_style: false                              # MinIO 等自托管服务设为 true
   key_prefix: ""                                 # 对象 key 前缀，如 "uploads/"，可用于分目录存储
   cdn_url: ""                                    # CDN 域名（如 https://cdn.example.com），为空则直接读 S3
+  local_cache:
+    enabled: false
+    cache_dir: "./s3_cache"

@@ -117,6 +117,7 @@ func PutObject(ctx context.Context, key string, body io.Reader, size int64, cont
 
 // ObjectInfo holds metadata about a retrieved object.
 type ObjectInfo struct {
+	CachePath     string
 	Body          io.ReadCloser
 	ContentLength int64
 	ContentType   string
