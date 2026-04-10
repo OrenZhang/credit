@@ -69,49 +69,54 @@ func GetObjectViaCache(ctx context.Context, key string) (*ObjectInfo, error) {
 		key = strings.TrimPrefix(key, "/")
 		localPath = fmt.Sprintf(cacheFilePath, localCacheDir, key)
 		metaPath = fmt.Sprintf(cacheMetaFilePath, localCacheDir, key)
-		v, err, _ := group.Do(key, func() (interface{}, error) {
-			return GetLocalCacheFile(ctx, localPath, metaPath)
-		})
+		objInfo, err := GetLocalCacheFile(ctx, localPath, metaPath)
 		if err != nil {
 			return nil, err
 		}
-		objInfo := v.(*ObjectInfo)
 		if objInfo != nil {
 			return objInfo, nil
 		}
 	}
 
-	// 没有缓存，通过 CDN 获取
-	objInfo, err := GetObjectViaProxy(ctx, key)
+	// 使用 singleflight 确保同一时间只有一个请求会触发 CDN 获取和本地缓存保存
+	v, err, _ := group.Do(key, func() (interface{}, error) {
+		// 没有缓存，通过 CDN 获取
+		objInfo, err := GetObjectViaProxy(ctx, key)
+		if err != nil {
+			return nil, err
+		}
+
+		// 如果启用了本地缓存，异步保存到本地
+		if localCacheEnabled {
+			bodyBytes, err := io.ReadAll(objInfo.Body)
+			if err != nil {
+				span.SetStatus(codes.Error, err.Error())
+				logger.ErrorF(ctx, "Failed to read object body for caching: %v", err)
+				return objInfo, nil
+			}
+			_ = objInfo.Body.Close()
+			objCopy := *objInfo
+			objCopy.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+			objInfo.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+			// 使用非阻塞方式尝试获取信号量，如果成功则启动一个 goroutine 来保存缓存，否则记录警告日志，避免磁盘过载
+			select {
+			case cacheWriteSem <- struct{}{}:
+				go func() {
+					defer func() { <-cacheWriteSem }()
+					SaveToLocalCache(context.WithoutCancel(ctx), localPath, metaPath, &objCopy)
+				}()
+			default:
+				logger.WarnF(ctx, "Local cache is busy, skipping cache save for key: %s", key)
+			}
+		}
+
+		return objInfo, nil
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	// 如果启用了本地缓存，异步保存到本地
-	if localCacheEnabled {
-		bodyBytes, err := io.ReadAll(objInfo.Body)
-		if err != nil {
-			span.SetStatus(codes.Error, err.Error())
-			logger.ErrorF(ctx, "Failed to read object body for caching: %v", err)
-			return objInfo, nil
-		}
-		_ = objInfo.Body.Close()
-		objCopy := *objInfo
-		objCopy.Body = io.NopCloser(bytes.NewReader(bodyBytes))
-		objInfo.Body = io.NopCloser(bytes.NewReader(bodyBytes))
-		// 使用非阻塞方式尝试获取信号量，如果成功则启动一个 goroutine 来保存缓存，否则记录警告日志，避免磁盘过载
-		select {
-		case cacheWriteSem <- struct{}{}:
-			go func() {
-				defer func() { <-cacheWriteSem }()
-				SaveToLocalCache(ctx, localPath, metaPath, &objCopy)
-			}()
-		default:
-			logger.WarnF(ctx, "Local cache is busy, skipping cache save for key: %s", key)
-		}
-	}
-
-	return objInfo, nil
+	return v.(*ObjectInfo), nil
 }
 
 func GetLocalCacheFile(ctx context.Context, localPath, metaPath string) (*ObjectInfo, error) {
@@ -138,11 +143,13 @@ func GetLocalCacheFile(ctx context.Context, localPath, metaPath string) (*Object
 
 	// 文件不存在
 	if err != nil && os.IsNotExist(err) {
+		file.Close()
 		return nil, nil
 	}
 
 	// 判断是否为其他异常
 	if err != nil {
+		file.Close()
 		span.SetStatus(codes.Error, err.Error())
 		logger.ErrorF(ctx, "Failed to read local cache meta file %s: %v", metaPath, err)
 		return nil, LocalCacheError{}
@@ -151,6 +158,7 @@ func GetLocalCacheFile(ctx context.Context, localPath, metaPath string) (*Object
 	// 解析元信息
 	meta := &metaInfo{}
 	if err := json.Unmarshal(metaData, meta); err != nil {
+		file.Close()
 		span.SetStatus(codes.Error, err.Error())
 		logger.ErrorF(ctx, "Failed to parse local cache meta file %s: %v", metaPath, err)
 		return nil, LocalCacheError{}
