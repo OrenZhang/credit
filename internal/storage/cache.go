@@ -1,6 +1,23 @@
+/*
+Copyright 2025 linux.do
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package storage
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -15,12 +32,15 @@ import (
 	"github.com/linux-do/credit/internal/otel_trace"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
+	"golang.org/x/sync/singleflight"
 )
 
 var localCacheEnabled = false
 var localCacheDir = ""
 var cacheFilePath = "%s/%s"
 var cacheMetaFilePath = "%s/%s.meta"
+var group singleflight.Group
+var cacheWriteSem = make(chan struct{}, 32)
 
 type metaInfo struct {
 	ContentType   string `json:"content_type"`
@@ -49,10 +69,13 @@ func GetObjectViaCache(ctx context.Context, key string) (*ObjectInfo, error) {
 		key = strings.TrimPrefix(key, "/")
 		localPath = fmt.Sprintf(cacheFilePath, localCacheDir, key)
 		metaPath = fmt.Sprintf(cacheMetaFilePath, localCacheDir, key)
-		objInfo, err := GetLocalCacheFile(ctx, localPath, metaPath)
+		v, err, _ := group.Do(key, func() (interface{}, error) {
+			return GetLocalCacheFile(ctx, localPath, metaPath)
+		})
 		if err != nil {
 			return nil, err
 		}
+		objInfo := v.(*ObjectInfo)
 		if objInfo != nil {
 			return objInfo, nil
 		}
@@ -74,9 +97,18 @@ func GetObjectViaCache(ctx context.Context, key string) (*ObjectInfo, error) {
 		}
 		_ = objInfo.Body.Close()
 		objCopy := *objInfo
-		objCopy.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
-		objInfo.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
-		go SaveToLocalCache(ctx, localPath, metaPath, &objCopy)
+		objCopy.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+		objInfo.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+		// 使用非阻塞方式尝试获取信号量，如果成功则启动一个 goroutine 来保存缓存，否则记录警告日志，避免磁盘过载
+		select {
+		case cacheWriteSem <- struct{}{}:
+			go func() {
+				defer func() { <-cacheWriteSem }()
+				SaveToLocalCache(ctx, localPath, metaPath, &objCopy)
+			}()
+		default:
+			logger.WarnF(ctx, "Local cache is busy, skipping cache save for key: %s", key)
+		}
 	}
 
 	return objInfo, nil
@@ -147,12 +179,25 @@ func SaveToLocalCache(ctx context.Context, localPath, metaPath string, objInfo *
 		return
 	}
 	defer os.Remove(tempFile.Name())
-	defer tempFile.Close()
 
 	// 将内容写入临时文件
 	if _, err := tempFile.ReadFrom(objInfo.Body); err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		logger.ErrorF(ctx, "Failed to write to temp file for local cache: %v", err)
+		return
+	}
+
+	// 确保数据写入磁盘
+	if err := tempFile.Sync(); err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		logger.ErrorF(ctx, "Failed to sync temp file for local cache: %v", err)
+		return
+	}
+
+	// 关闭临时文件
+	if err := tempFile.Close(); err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		logger.ErrorF(ctx, "Failed to close temp file for local cache: %v", err)
 		return
 	}
 
@@ -173,12 +218,25 @@ func SaveToLocalCache(ctx context.Context, localPath, metaPath string, objInfo *
 		return
 	}
 	defer os.Remove(tempMetaFile.Name())
-	defer tempMetaFile.Close()
 
 	// 将元信息写入临时文件
 	if _, err := tempMetaFile.Write(metaData); err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		logger.ErrorF(ctx, "Failed to write to temp meta file for local cache: %v", err)
+		return
+	}
+
+	// 确保数据写入磁盘
+	if err := tempMetaFile.Sync(); err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		logger.ErrorF(ctx, "Failed to sync temp meta file for local cache: %v", err)
+		return
+	}
+
+	// 关闭临时元信息文件
+	if err := tempMetaFile.Close(); err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		logger.ErrorF(ctx, "Failed to close temp meta file for local cache: %v", err)
 		return
 	}
 
