@@ -17,11 +17,9 @@ limitations under the License.
 package storage
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -40,7 +38,6 @@ var localCacheDir = ""
 var cacheFilePath = "%s/%s"
 var cacheMetaFilePath = "%s/%s.meta"
 var group singleflight.Group
-var cacheWriteSem = make(chan struct{}, 32)
 
 type metaInfo struct {
 	ContentType   string `json:"content_type"`
@@ -64,27 +61,29 @@ func init() {
 }
 
 func GetObjectViaCache(ctx context.Context, key string) (*ObjectInfo, error) {
+	// 没有开启本地缓存
+	if !localCacheEnabled {
+		return GetObjectViaProxy(ctx, key)
+	}
+
+	// 初始化 Trace
 	ctx, span := otel_trace.Start(ctx, "S3.GetObjectViaCache", trace.WithSpanKind(trace.SpanKindClient))
 	defer span.End()
 
-	var localPath, metaPath string
-
 	// 检查本地缓存
-	if localCacheEnabled {
-		key = strings.TrimPrefix(key, "/")
-		localPath = fmt.Sprintf(cacheFilePath, localCacheDir, key)
-		metaPath = fmt.Sprintf(cacheMetaFilePath, localCacheDir, key)
-		objInfo, err := GetLocalCacheFile(ctx, localPath, metaPath)
-		if err != nil {
-			return nil, err
-		}
-		if objInfo != nil {
-			return objInfo, nil
-		}
+	key = strings.TrimPrefix(key, "/")
+	localPath := fmt.Sprintf(cacheFilePath, localCacheDir, key)
+	metaPath := fmt.Sprintf(cacheMetaFilePath, localCacheDir, key)
+	objInfo, err := GetLocalCacheFile(ctx, localPath, metaPath)
+	if err != nil {
+		return nil, err
+	}
+	if objInfo != nil {
+		return objInfo, nil
 	}
 
 	// 使用 singleflight 确保同一时间只有一个请求会触发 CDN 获取和本地缓存保存
-	v, err, _ := group.Do(key, func() (interface{}, error) {
+	_, err, _ = group.Do(key, func() (interface{}, error) {
 		ctx := context.WithoutCancel(ctx)
 
 		// 没有缓存，通过 CDN 获取
@@ -93,45 +92,19 @@ func GetObjectViaCache(ctx context.Context, key string) (*ObjectInfo, error) {
 			return nil, err
 		}
 
-		// 如果启用了本地缓存，异步保存到本地
-		if localCacheEnabled {
-			bodyBytes, err := io.ReadAll(objInfo.Body)
-			if err != nil {
-				span.SetStatus(codes.Error, err.Error())
-				logger.ErrorF(ctx, "Failed to read object body for caching: %v", err)
-				return objInfo, nil
-			}
-			_ = objInfo.Body.Close()
-			objCopy := *objInfo
-			objCopy.Body = io.NopCloser(bytes.NewReader(bodyBytes))
-			objInfo.Body = io.NopCloser(bytes.NewReader(bodyBytes))
-			// 使用非阻塞方式尝试获取信号量，如果成功则启动一个 goroutine 来保存缓存，否则记录警告日志，避免磁盘过载
-			select {
-			case cacheWriteSem <- struct{}{}:
-				go func() {
-					defer func() { <-cacheWriteSem }()
-					SaveToLocalCache(ctx, localPath, metaPath, &objCopy)
-				}()
-			default:
-				logger.WarnF(ctx, "Local cache is busy, skipping cache save for key: %s", key)
-			}
-		}
-
-		// 将对象内容读入内存，以便在 singleflight 内部返回给其他等待的请求
-		bodyBytes, err := io.ReadAll(objInfo.Body)
-		if err != nil {
-			span.SetStatus(codes.Error, err.Error())
-			logger.ErrorF(ctx, "Failed to read object body: %v", err)
+		// 保存到本地
+		if err := SaveToLocalCache(ctx, localPath, metaPath, objInfo); err != nil {
 			return nil, err
 		}
-		return &cacheObject{ObjectInfo: ObjectInfo{ContentLength: objInfo.ContentLength, ContentType: objInfo.ContentType}, Body: bodyBytes}, nil
+
+		return nil, nil
 	})
 	if err != nil {
-		return nil, err
+		logger.ErrorF(ctx, "Failed to get object via singleflight for key %s: %v", key, err)
+		return nil, LocalCacheError{}
 	}
 
-	cacheObj := v.(*cacheObject)
-	return &ObjectInfo{ContentLength: cacheObj.ContentLength, ContentType: cacheObj.ContentType, Body: io.NopCloser(bytes.NewReader(cacheObj.Body))}, nil
+	return GetObjectViaCache(ctx, key)
 }
 
 func GetLocalCacheFile(ctx context.Context, localPath, metaPath string) (*ObjectInfo, error) {
@@ -182,7 +155,7 @@ func GetLocalCacheFile(ctx context.Context, localPath, metaPath string) (*Object
 	return &ObjectInfo{Body: file, ContentLength: meta.ContentLength, ContentType: meta.ContentType}, nil
 }
 
-func SaveToLocalCache(ctx context.Context, localPath, metaPath string, objInfo *ObjectInfo) {
+func SaveToLocalCache(ctx context.Context, localPath, metaPath string, objInfo *ObjectInfo) error {
 	ctx, span := otel_trace.Start(ctx, "S3.SaveToLocalCache", trace.WithSpanKind(trace.SpanKindClient))
 	defer span.End()
 
@@ -191,7 +164,7 @@ func SaveToLocalCache(ctx context.Context, localPath, metaPath string, objInfo *
 	if err := os.MkdirAll(localDir, 0755); err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		logger.ErrorF(ctx, "Failed to create local cache directory %s: %v", localDir, err)
-		return
+		return err
 	}
 
 	// 创建临时文件
@@ -199,7 +172,7 @@ func SaveToLocalCache(ctx context.Context, localPath, metaPath string, objInfo *
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		logger.ErrorF(ctx, "Failed to create temp file for local cache: %v", err)
-		return
+		return err
 	}
 	defer os.Remove(tempFile.Name())
 
@@ -207,21 +180,21 @@ func SaveToLocalCache(ctx context.Context, localPath, metaPath string, objInfo *
 	if _, err := tempFile.ReadFrom(objInfo.Body); err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		logger.ErrorF(ctx, "Failed to write to temp file for local cache: %v", err)
-		return
+		return err
 	}
 
 	// 确保数据写入磁盘
 	if err := tempFile.Sync(); err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		logger.ErrorF(ctx, "Failed to sync temp file for local cache: %v", err)
-		return
+		return err
 	}
 
 	// 关闭临时文件
 	if err := tempFile.Close(); err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		logger.ErrorF(ctx, "Failed to close temp file for local cache: %v", err)
-		return
+		return err
 	}
 
 	// 写入元信息
@@ -230,7 +203,7 @@ func SaveToLocalCache(ctx context.Context, localPath, metaPath string, objInfo *
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		logger.ErrorF(ctx, "Failed to marshal meta info for local cache: %v", err)
-		return
+		return err
 	}
 
 	// 创建临时元信息文件
@@ -238,7 +211,7 @@ func SaveToLocalCache(ctx context.Context, localPath, metaPath string, objInfo *
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		logger.ErrorF(ctx, "Failed to create temp meta file for local cache: %v", err)
-		return
+		return err
 	}
 	defer os.Remove(tempMetaFile.Name())
 
@@ -246,34 +219,36 @@ func SaveToLocalCache(ctx context.Context, localPath, metaPath string, objInfo *
 	if _, err := tempMetaFile.Write(metaData); err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		logger.ErrorF(ctx, "Failed to write to temp meta file for local cache: %v", err)
-		return
+		return err
 	}
 
 	// 确保数据写入磁盘
 	if err := tempMetaFile.Sync(); err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		logger.ErrorF(ctx, "Failed to sync temp meta file for local cache: %v", err)
-		return
+		return err
 	}
 
 	// 关闭临时元信息文件
 	if err := tempMetaFile.Close(); err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		logger.ErrorF(ctx, "Failed to close temp meta file for local cache: %v", err)
-		return
+		return err
 	}
 
 	// 将临时文件重命名为最终文件
 	if err := os.Rename(tempFile.Name(), localPath); err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		logger.ErrorF(ctx, "Failed to rename temp file to local cache file %s: %v", localPath, err)
-		return
+		return err
 	}
 
 	// 将临时元信息文件重命名为最终元信息文件
 	if err := os.Rename(tempMetaFile.Name(), metaPath); err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		logger.ErrorF(ctx, "Failed to rename temp meta file to local cache meta file %s: %v", metaPath, err)
-		return
+		return err
 	}
+
+	return nil
 }
