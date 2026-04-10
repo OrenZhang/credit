@@ -186,13 +186,19 @@ type otelConfig struct {
 
 // s3Config S3 compatible storage configuration
 type s3Config struct {
-	Enabled         bool   `mapstructure:"enabled"`
-	Endpoint        string `mapstructure:"endpoint"`
-	Region          string `mapstructure:"region"`
-	Bucket          string `mapstructure:"bucket"`
-	AccessKeyID     string `mapstructure:"access_key_id" json:"-"`
-	SecretAccessKey string `mapstructure:"secret_access_key" json:"-"`
-	PathStyle       bool   `mapstructure:"path_style"`
-	KeyPrefix       string `mapstructure:"key_prefix"`
-	CdnURL          string `mapstructure:"cdn_url"`
+	Enabled         bool             `mapstructure:"enabled"`
+	Endpoint        string           `mapstructure:"endpoint"`
+	Region          string           `mapstructure:"region"`
+	Bucket          string           `mapstructure:"bucket"`
+	AccessKeyID     string           `mapstructure:"access_key_id" json:"-"`
+	SecretAccessKey string           `mapstructure:"secret_access_key" json:"-"`
+	PathStyle       bool             `mapstructure:"path_style"`
+	KeyPrefix       string           `mapstructure:"key_prefix"`
+	CdnURL          string           `mapstructure:"cdn_url"`
+	LocalCache      localCacheConfig `mapstructure:"local_cache"`
+}
+
+type localCacheConfig struct {
+	Enabled  bool   `mapstructure:"enabled"`
+	CacheDir string `mapstructure:"cache_dir"`
 }

@@ -21,3 +21,9 @@ type ErrS3InitializationFailed struct{}
 func (e ErrS3InitializationFailed) Error() string {
 	return "S3存储初始化失败"
 }
+
+type LocalCacheError struct{}
+
+func (e LocalCacheError) Error() string {
+	return "本地缓存错误"
+}

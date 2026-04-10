@@ -57,7 +57,7 @@ func ServeFileByID(c *gin.Context) {
 	}
 
 	// Retrieve file from S3 (via CDN if configured)
-	obj, err := storage.GetObjectViaProxy(c.Request.Context(), upload.FilePath)
+	obj, err := storage.GetObjectViaCache(c.Request.Context(), upload.FilePath)
 	if err != nil {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
