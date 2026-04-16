@@ -156,6 +156,14 @@ definitions:
     - amount
     - product_name
     type: object
+  model.OrderTransferStatus:
+    enum:
+    - pending
+    - completed
+    type: string
+    x-enum-varnames:
+    - OrderTransferStatusPending
+    - OrderTransferStatusCompleted
   model.PayLevel:
     enum:
     - 0
@@ -202,6 +210,12 @@ definitions:
         maximum: 100
         minimum: 1
         type: integer
+      payee_transfer_status:
+        allOf:
+        - $ref: '#/definitions/model.OrderTransferStatus'
+        enum:
+        - pending
+        - completed
       payee_username:
         type: string
       payer_username:
