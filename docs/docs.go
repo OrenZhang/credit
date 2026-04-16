@@ -2006,6 +2006,17 @@ const docTemplate = `{
                 }
             }
         },
+        "model.OrderTransferStatus": {
+            "type": "string",
+            "enum": [
+                "pending",
+                "completed"
+            ],
+            "x-enum-varnames": [
+                "OrderTransferStatusPending",
+                "OrderTransferStatusCompleted"
+            ]
+        },
         "model.PayLevel": {
             "type": "integer",
             "format": "int32",
@@ -2068,6 +2079,17 @@ const docTemplate = `{
                     "type": "integer",
                     "maximum": 100,
                     "minimum": 1
+                },
+                "payee_transfer_status": {
+                    "enum": [
+                        "pending",
+                        "completed"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.OrderTransferStatus"
+                        }
+                    ]
                 },
                 "payee_username": {
                     "type": "string"
