@@ -212,7 +212,7 @@ export function DataPanel() {
       </div>
 
       {/* 统计数据区域 - 移动端改为单列信息行，桌面端保持右侧垂直展示 */}
-      <div className="md:col-span-1 order-2 md:order-none flex flex-col divide-y divide-border/70 md:divide-y-0">
+      <div className="md:col-span-1 order-2 md:order-none flex flex-col divide-y divide-border/70 md:divide-y-0 md:pt-px">
         <div className="py-3 first:pt-0 md:border-b md:pb-4 md:pt-0">
           <div className="flex items-start justify-between gap-4 md:block">
             <div className="min-w-0 text-sm text-muted-foreground font-medium flex items-center gap-1 flex-wrap md:whitespace-nowrap">
