@@ -46,8 +46,6 @@ export interface User {
   total_receive: string;
   /** 总支付金额 */
   total_payment: string;
-  /** 总转账金额 */
-  total_transfer: string;
   /** 总社区金额 */
   total_community: string;
   /** 社区余额 */
@@ -85,4 +83,3 @@ export interface OAuthCallbackRequest {
   /** 授权码 */
   code: string;
 }
-

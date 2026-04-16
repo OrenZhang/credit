@@ -21,6 +21,11 @@ import {
 } from "./dispute-dialog"
 import {usePublicConfig} from "@/hooks/use-public-config";
 
+const FALLBACK_TYPE_CONFIG = {
+  label: '历史活动',
+  color: 'bg-muted/50 text-gray-800 dark:bg-gray-900 dark:text-gray-300',
+}
+
 const ROW_HEIGHT = 36
 
 /**
@@ -132,6 +137,7 @@ const TransactionTableRow = React.memo(React.forwardRef<HTMLTableRowElement, {
   const isCurrentUserPayer = user?.id === order.payer_user_id
   const isCurrentUserPayee = user?.id === order.payee_user_id
   const isDisputing = order.status === 'disputing' && isCurrentUserPayee
+  const currentTypeConfig = typeConfig[order.type as keyof typeof typeConfig] ?? FALLBACK_TYPE_CONFIG
 
   return (
     <TableRow
@@ -152,9 +158,9 @@ const TransactionTableRow = React.memo(React.forwardRef<HTMLTableRowElement, {
       <TableCell className="text-[11px] font-medium whitespace-nowrap text-center py-1">
         <Badge
           variant="secondary"
-          className={`text-[10px] px-1 ${ typeConfig[order.type].color }`}
+          className={`text-[10px] px-1 ${ currentTypeConfig.color }`}
         >
-          {typeConfig[order.type].label}
+          {currentTypeConfig.label}
         </Badge>
       </TableCell>
       <TableCell className="text-[11px] font-medium whitespace-nowrap text-center py-1">

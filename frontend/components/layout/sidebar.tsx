@@ -114,6 +114,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     largeMainDecorationConfig,
     interactionDecorationConfig
   } = currentTheme
+  const hasAvatarDecoration = currentTheme.key !== "none"
 
   const [showEffect, setShowEffect] = React.useState(false)
   const [userMenuOpen, setUserMenuOpen] = React.useState(false)
@@ -147,7 +148,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   return (
     <>
-      {showEffect && BackgroundEffect && <BackgroundEffect />}
+      {hasAvatarDecoration && showEffect && BackgroundEffect && <BackgroundEffect />}
       <Sidebar collapsible="icon" {...props} className="px-2 relative border-r border-border/40 group-data-[collapsible=icon]">
         <Button
           onClick={toggleSidebar}
@@ -175,7 +176,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 suppressHydrationWarning
               >
                 <div className="relative overflow-visible">
-                  <MainDecoration className={smallMainDecorationConfig?.className} />
+                  {hasAvatarDecoration && <MainDecoration className={smallMainDecorationConfig?.className} />}
                   <Avatar className="size-6 rounded relative z-10">
                     <AvatarImage
                       src={user?.avatar_url}
@@ -206,15 +207,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <DropdownMenuLabel>
                 <div className="flex flex-col items-center mb-4 gap-1 pt-4">
                   <div
-                    className="relative w-32 h-16 flex items-center justify-center overflow-visible cursor-pointer select-none transition-transform active:scale-95"
-                    onClick={() => setShowEffect(!showEffect)}
+                    className={`relative w-32 h-16 flex items-center justify-center overflow-visible select-none transition-transform ${hasAvatarDecoration ? "cursor-pointer active:scale-95" : ""}`}
+                    onClick={hasAvatarDecoration ? () => setShowEffect(!showEffect) : undefined}
                   >
-                    <InteractionDecoration
-                      show={showEffect}
-                      className={interactionDecorationConfig?.className}
-                    />
+                    {hasAvatarDecoration && (
+                      <InteractionDecoration
+                        show={showEffect}
+                        className={interactionDecorationConfig?.className}
+                      />
+                    )}
                     <div className="relative z-10">
-                      <MainDecoration className={largeMainDecorationConfig?.className} />
+                      {hasAvatarDecoration && <MainDecoration className={largeMainDecorationConfig?.className} />}
                       <Avatar className="size-14 rounded-full pointer-events-none">
                         <AvatarImage
                           src={user?.avatar_url}

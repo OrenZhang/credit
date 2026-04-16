@@ -267,14 +267,6 @@ export const searchData: SearchItem[] = [
     keywords: ['balance', '余额', '消耗', 'payment', '近期'],
   },
   {
-    id: 'balance-transfer',
-    title: '近期积分转移',
-    description: '查看近期积分转移记录',
-    url: '/balance',
-    category: 'feature',
-    keywords: ['balance', '余额', '转移', 'transfer', '近期'],
-  },
-  {
     id: 'balance-community',
     title: '近期社区积分划转',
     description: '查看社区积分划转记录',
@@ -317,14 +309,6 @@ export const searchData: SearchItem[] = [
     keywords: ['trade', '交易', '消耗', 'payment', '记录'],
   },
   {
-    id: 'trade-transfer',
-    title: '积分转移记录',
-    description: '查看积分转移记录',
-    url: '/trade',
-    category: 'feature',
-    keywords: ['trade', '交易', '转移', 'transfer', '记录'],
-  },
-  {
     id: 'trade-community',
     title: '社区积分划转记录',
     description: '查看社区积分划转记录',
@@ -355,14 +339,6 @@ export const searchData: SearchItem[] = [
     url: '/trade',
     category: 'feature',
     keywords: ['trade', '交易', '创建', '自定义', 'form', '表单'],
-  },
-  {
-    id: 'trade-transfer-action',
-    title: '转移积分',
-    description: '发起积分转移操作',
-    url: '/trade',
-    category: 'feature',
-    keywords: ['trade', '交易', '积分', '转移', 'transfer', '他人'],
   },
   {
     id: 'trade-overview',

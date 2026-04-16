@@ -104,6 +104,7 @@ export type { User, OAuthLoginUrlResponse, OAuthCallbackRequest } from './auth';
 
 // 交易服务
 export { TransactionService } from './transaction';
+export { DEFAULT_ORDER_TYPES } from './transaction';
 export type {
   Order,
   OrderType,
@@ -111,8 +112,6 @@ export type {
   TransferStatus,
   TransactionQueryParams,
   TransactionListResponse,
-  TransferRequest,
-  TransferResponse,
 } from './transaction';
 
 // 争议服务

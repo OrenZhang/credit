@@ -2,7 +2,7 @@ import * as React from "react"
 import { TransactionTableList } from "@/components/common/general/table-data"
 import { TableFilter, type SearchValues } from "@/components/common/general/table-filter"
 import { TransactionProvider, useTransaction } from "@/contexts/transaction-context"
-import type { OrderStatus, OrderType, TransactionQueryParams } from "@/lib/services"
+import { DEFAULT_ORDER_TYPES, type OrderStatus, type OrderType, type TransactionQueryParams } from "@/lib/services"
 import { formatLocalDate } from "@/lib/utils"
 
 /**
@@ -62,6 +62,23 @@ function TransactionList({ initialType }: { initialType?: OrderType }) {
   const [dateRange, setDateRange] = React.useState<{ from: Date; to: Date } | null>(getDefaultDateRange)
   const [selectedSearch, setSelectedSearch] = React.useState<SearchValues>({})
 
+  const buildQueryParams = React.useCallback((page: number): TransactionQueryParams => ({
+    page,
+    page_size: pageSize,
+    types: selectedTypes.length > 0 ? selectedTypes : DEFAULT_ORDER_TYPES,
+    statuses: selectedStatuses.length > 0 ? selectedStatuses : undefined,
+    startTime: dateRange ? formatLocalDate(dateRange.from) : undefined,
+    endTime: dateRange ? (() => {
+      const endDate = new Date(dateRange.to)
+      endDate.setDate(endDate.getDate() + 1)
+      return formatLocalDate(endDate)
+    })() : undefined,
+    id: selectedSearch.id || undefined,
+    order_name: selectedSearch.order_name || undefined,
+    payer_username: selectedSearch.payer_username || undefined,
+    payee_username: selectedSearch.payee_username || undefined,
+  }), [dateRange, pageSize, selectedSearch, selectedStatuses, selectedTypes])
+
   /* 清空所有筛选 */
   const clearAllFilters = () => {
     setSelectedTypes(initialType ? [initialType] : [])
@@ -73,25 +90,8 @@ function TransactionList({ initialType }: { initialType?: OrderType }) {
 
   /* 当筛选条件改变时，重新加载数据 */
   React.useEffect(() => {
-    const params: TransactionQueryParams = {
-      page: 1,
-      page_size: pageSize,
-      types: selectedTypes.length > 0 ? selectedTypes : undefined,
-      statuses: selectedStatuses.length > 0 ? selectedStatuses : undefined,
-      startTime: dateRange ? formatLocalDate(dateRange.from) : undefined,
-      endTime: dateRange ? (() => {
-        const endDate = new Date(dateRange.to)
-        endDate.setDate(endDate.getDate() + 1)
-        return formatLocalDate(endDate)
-      })() : undefined,
-      id: selectedSearch.id || undefined,
-      order_name: selectedSearch.order_name || undefined,
-      payer_username: selectedSearch.payer_username || undefined,
-      payee_username: selectedSearch.payee_username || undefined,
-    }
-
-    fetchTransactions(params)
-  }, [fetchTransactions, dateRange, selectedTypes, selectedStatuses, selectedSearch, pageSize])
+    fetchTransactions(buildQueryParams(1))
+  }, [buildQueryParams, fetchTransactions])
 
   /* 当initialType改变时，更新筛选状态 */
   React.useEffect(() => {
@@ -137,7 +137,7 @@ function TransactionList({ initialType }: { initialType?: OrderType }) {
         loading={loading}
         error={error}
         transactions={transactions}
-        onRetry={() => fetchTransactions({ page: 1 })}
+        onRetry={() => fetchTransactions(buildQueryParams(1))}
       />
     </div>
   )

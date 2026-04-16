@@ -4,6 +4,7 @@ import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "
 import { CountingNumber } from '@/components/animate-ui/primitives/texts/counting-number'
 import { Skeleton } from "@/components/ui/skeleton"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { Info } from "lucide-react"
 
 import { useUser } from "@/contexts/user-context"
@@ -25,6 +26,37 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
+function ResponsiveInfoTip({ children }: { children: React.ReactNode }) {
+  const triggerClassName =
+    "shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+
+  return (
+    <>
+      <Popover>
+        <PopoverTrigger asChild>
+          <button type="button" aria-label="查看详情" className={`inline-flex ${triggerClassName} md:hidden`}>
+            <Info className="size-3.5" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent side="top" className="w-fit max-w-[calc(100vw-2rem)] p-3 md:hidden">
+          <p className="text-xs break-words">{children}</p>
+        </PopoverContent>
+      </Popover>
+
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button type="button" aria-label="查看详情" className={`hidden ${triggerClassName} md:inline-flex`}>
+            <Info className="size-3.5" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" sideOffset={6} className="w-fit max-w-[calc(100vw-2rem)] px-3 py-2">
+          <p className="text-xs leading-5 break-words">{children}</p>
+        </TooltipContent>
+      </Tooltip>
+    </>
+  )
+}
+
 /**
  * 数据面板组件
  * 展示用户数据和积分余额
@@ -38,7 +70,6 @@ export function DataPanel() {
   const availableBalance = parseFloat(user?.available_balance || '0')
   const pendingBalance = parseFloat(user?.pending_balance || '0')
   const remainQuota = parseFloat(user?.remain_quota || '0')
-  const communityBalance = parseFloat(user?.community_balance || '0').toLocaleString()
 
   /* 获取每日统计数据 */
   React.useEffect(() => {
@@ -180,64 +211,49 @@ export function DataPanel() {
         )}
       </div>
 
-      {/* 统计数据区域 - 移动端在下方并排展示，桌面端在右侧垂直展示 */}
-      <div className="md:col-span-1 flex flex-row flex-wrap md:flex-col order-2 md:order-none gap-8 md:gap-0">
-        <div className="flex-1 min-w-[120px] md:border-b md:pb-4 border-r md:border-r-0 border-border pr-8 md:pr-0">
-          <div className="text-sm text-muted-foreground font-medium flex items-center gap-1 whitespace-nowrap">
+      {/* 统计数据区域 - 移动端改为单列信息行，桌面端保持右侧垂直展示 */}
+      <div className="md:col-span-1 order-2 md:order-none flex flex-col divide-y divide-border/70 md:divide-y-0 md:pt-px">
+        <div className="py-3 first:pt-0 md:border-b md:pb-4 md:pt-0">
+          <div className="flex items-start justify-between gap-4 md:block">
+            <div className="min-w-0 text-sm text-muted-foreground font-medium flex items-center gap-1 flex-wrap md:whitespace-nowrap">
             <span className="min-[400px]:hidden">可用LDC</span>
             <span className="hidden min-[400px]:inline">可用 LINUX DO Credits</span>
-            <Popover>
-              <PopoverTrigger asChild>
-                <button type="button" aria-label="查看详情">
-                  <Info className="size-3.5 cursor-pointer" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent side="top" className="w-auto max-w-[280px] p-3">
-                <p className="text-xs">社区基准分数(上一次从社区同步的积分基准值): {userLoading ? '-' : communityBalance} </p>
-              </PopoverContent>
-            </Popover>
-          </div>
-          <div className="text-xl font-semibold pt-2">
-            {userLoading ? '-' : <CountingNumber number={availableBalance} decimalPlaces={2} />}
+            <ResponsiveInfoTip>
+              当前可立即使用的积分，不包含延迟到账中的未来积分。
+            </ResponsiveInfoTip>
+            </div>
+            <div className="shrink-0 text-right text-xl font-semibold leading-none md:pt-2 md:text-left">
+              {userLoading ? '-' : <CountingNumber number={availableBalance} decimalPlaces={2} />}
+            </div>
           </div>
         </div>
 
-        <div className="flex-1 min-w-[120px] md:border-b md:pb-4 border-r md:border-r-0 border-border pr-8 md:pr-0">
-          <div className="text-sm text-muted-foreground font-medium flex items-center gap-1 whitespace-nowrap">
+        <div className="py-3 md:border-b md:pt-4 md:pb-4">
+          <div className="flex items-start justify-between gap-4 md:block">
+            <div className="min-w-0 text-sm text-muted-foreground font-medium flex items-center gap-1 flex-wrap md:whitespace-nowrap">
             <span className="min-[400px]:hidden">未来LDC</span>
             <span className="hidden min-[400px]:inline">未来 LINUX DO Credits</span>
-            <Popover>
-              <PopoverTrigger asChild>
-                <button type="button" aria-label="查看详情">
-                  <Info className="size-3.5 cursor-pointer" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent side="top" className="w-auto max-w-[280px] p-3">
-                <p className="text-xs">商户收款后延迟到账的资金，到期后自动转入可用余额</p>
-              </PopoverContent>
-            </Popover>
-          </div>
-          <div className="text-xl font-semibold pt-2">
-            {userLoading ? '-' : <CountingNumber number={pendingBalance} decimalPlaces={2} />}
+            <ResponsiveInfoTip>
+              流转后延迟到账的积分，到期后自动转入可用积分。
+            </ResponsiveInfoTip>
+            </div>
+            <div className="shrink-0 text-right text-xl font-semibold leading-none md:pt-2 md:text-left">
+              {userLoading ? '-' : <CountingNumber number={pendingBalance} decimalPlaces={2} />}
+            </div>
           </div>
         </div>
 
-        <div className="flex-1 min-w-[120px] md:pt-4 pl-0 md:pl-0">
-          <div className="text-sm text-muted-foreground font-medium flex items-center gap-1">
+        <div className="py-3 last:pb-0 md:pt-4 md:pb-0">
+          <div className="flex items-start justify-between gap-4 md:block">
+            <div className="min-w-0 text-sm text-muted-foreground font-medium flex items-center gap-1 flex-wrap">
             今日剩余额度
-            <Popover>
-              <PopoverTrigger asChild>
-                <button type="button" aria-label="查看详情">
-                  <Info className="size-3.5 cursor-pointer" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent side="top" className="w-auto max-w-[280px] p-3">
-                <p className="text-xs">每日积分消耗额度限制，每日 0 点自动重置</p>
-              </PopoverContent>
-            </Popover>
-          </div>
-          <div className="text-xl font-semibold pt-2">
-            {userLoading ? '-' : remainQuota < 0 ? "无限制" : <CountingNumber number={remainQuota} decimalPlaces={2} />}
+            <ResponsiveInfoTip>
+              每日积分消耗额度限制，每日 0 点自动重置
+            </ResponsiveInfoTip>
+            </div>
+            <div className="shrink-0 text-right text-xl font-semibold leading-none md:pt-2 md:text-left">
+              {userLoading ? '-' : remainQuota < 0 ? "无限制" : <CountingNumber number={remainQuota} decimalPlaces={2} />}
+            </div>
           </div>
         </div>
       </div>

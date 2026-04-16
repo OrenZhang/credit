@@ -7,7 +7,7 @@ import { Undo2, FileText, Link2 } from "lucide-react"
 import { toast } from "sonner"
 import { TableFilter, type SearchValues } from "@/components/common/general/table-filter"
 import { TransactionTableList } from "@/components/common/general/table-data"
-import type { MerchantAPIKey, OrderType, OrderStatus } from "@/lib/services"
+import { DEFAULT_ORDER_TYPES, type MerchantAPIKey, type OrderType, type OrderStatus } from "@/lib/services"
 import { TransactionProvider, useTransaction } from "@/contexts/transaction-context"
 import { formatLocalDate } from "@/lib/utils"
 
@@ -66,6 +66,25 @@ function MerchantDataContent({ apiKey }: MerchantDataProps) {
   const [dateRange, setDateRange] = React.useState<{ from: Date; to: Date } | null>(getDefaultDateRange)
   const [selectedSearch, setSelectedSearch] = React.useState<SearchValues>({})
 
+  const buildQueryParams = React.useCallback((page: number) => ({
+    page,
+    page_size: pageSize,
+    types: selectedTypes.length > 0 ? selectedTypes : DEFAULT_ORDER_TYPES,
+    statuses: selectedStatuses.length > 0 ? selectedStatuses : undefined,
+    startTime: dateRange ? formatLocalDate(dateRange.from) : undefined,
+    endTime: dateRange ? (() => {
+      const endDate = new Date(dateRange.to)
+      endDate.setHours(0, 0, 0, 0)
+      endDate.setDate(endDate.getDate() + 1)
+      return formatLocalDate(endDate)
+    })() : undefined,
+    client_id: apiKey.client_id,
+    id: selectedSearch.id || undefined,
+    order_name: selectedSearch.order_name || undefined,
+    payer_username: selectedSearch.payer_username || undefined,
+    payee_username: selectedSearch.payee_username || undefined,
+  }), [apiKey.client_id, dateRange, pageSize, selectedSearch, selectedStatuses, selectedTypes])
+
   const clearAllFilters = () => {
     setSelectedTypes([])
     setSelectedStatuses([])
@@ -75,26 +94,8 @@ function MerchantDataContent({ apiKey }: MerchantDataProps) {
   }
 
   useEffect(() => {
-    const params = {
-      page: 1,
-      page_size: 20,
-      types: selectedTypes.length > 0 ? selectedTypes : undefined,
-      statuses: selectedStatuses.length > 0 ? selectedStatuses : undefined,
-      startTime: dateRange ? formatLocalDate(dateRange.from) : undefined,
-      endTime: dateRange ? (() => {
-        const endDate = new Date(dateRange.to)
-        endDate.setHours(0, 0, 0, 0)
-        endDate.setDate(endDate.getDate() + 1)
-        return formatLocalDate(endDate)
-      })() : undefined,
-      client_id: apiKey.client_id,
-      id: selectedSearch.id || undefined,
-      order_name: selectedSearch.order_name || undefined,
-      payer_username: selectedSearch.payer_username || undefined,
-      payee_username: selectedSearch.payee_username || undefined,
-    }
-    fetchTransactions(params)
-  }, [fetchTransactions, dateRange, selectedTypes, selectedStatuses, apiKey.client_id, selectedSearch])
+    fetchTransactions(buildQueryParams(1))
+  }, [buildQueryParams, fetchTransactions])
 
   const actionHandlers = {
     refund: () => {
@@ -168,7 +169,7 @@ function MerchantDataContent({ apiKey }: MerchantDataProps) {
             loading={loading}
             error={error}
             transactions={transactions}
-            onRetry={() => fetchTransactions({ page: 1, client_id: apiKey.client_id })}
+            onRetry={() => fetchTransactions(buildQueryParams(1))}
             emptyDescription="未发现积分活动记录"
           />
         </div>

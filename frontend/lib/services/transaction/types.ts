@@ -1,7 +1,23 @@
 /**
  * 订单类型
  */
-export type OrderType = 'receive' | 'payment' | 'transfer' | 'community' | 'online' | 'test' | 'distribute' | 'red_envelope_send' | 'red_envelope_receive' | 'red_envelope_refund';
+export type OrderType = 'receive' | 'payment' | 'community' | 'online' | 'test' | 'distribute' | 'red_envelope_send' | 'red_envelope_receive' | 'red_envelope_refund';
+
+/**
+ * 前端默认展示的订单类型
+ * 显式排除已移除的积分转移类型
+ */
+export const DEFAULT_ORDER_TYPES: OrderType[] = [
+  'receive',
+  'payment',
+  'community',
+  'online',
+  'test',
+  'distribute',
+  'red_envelope_send',
+  'red_envelope_receive',
+  'red_envelope_refund',
+];
 
 /**
  * 订单状态
@@ -112,32 +128,3 @@ export interface TransactionListResponse {
   /** 订单列表 */
   orders: Order[];
 }
-
-/**
- * 用户转账请求
- */
-export interface TransferRequest {
-  /** 收款人用户 ID */
-  recipient_id: string;
-  /** 收款人账户 */
-  recipient_username: string;
-  /** 转账金额（必须大于0，最多2位小数） */
-  amount: number | string;
-  /** 支付密码（6-10位） */
-  pay_key: string;
-  /** 备注（可选，最大200字符） */
-  remark?: string;
-}
-
-/**
- * 用户转账响应
- */
-export interface TransferResponse {
-  /** 订单 ID */
-  order_id: string;
-  /** 订单号 */
-  order_no: string;
-  /** 交易时间 */
-  trade_time: string;
-}
-

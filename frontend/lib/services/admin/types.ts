@@ -180,8 +180,6 @@ export interface AdminUser {
   total_receive: string;
   /** 累计支出 */
   total_payment: string;
-  /** 累计转账 */
-  total_transfer: string;
   /** 累计社区积分 */
   total_community: string;
   /** 社区余额 */
@@ -229,4 +227,3 @@ export interface UpdateUserStatusRequest {
   /** 是否激活 */
   is_active: boolean;
 }
-

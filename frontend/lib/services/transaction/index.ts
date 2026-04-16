@@ -4,7 +4,6 @@
  * @description
  * 提供交易相关的功能，包括：
  * - 查询交易记录列表（分页）
- * - 用户转账
  *
  * @example
  * ```typescript
@@ -14,22 +13,14 @@
  * const result = await TransactionService.getTransactions({
  *   page: 1,
  *   page_size: 20,
- *   type: 'receive',
- *   status: 'success'
- * });
- *
- * // 用户转账
- * await TransactionService.transfer({
- *   recipient_id: 123,
- *   recipient_username: 'user123',
- *   amount: 100.50,
- *   pay_key: '123456',
- *   remark: '转账备注'
+ *   types: ['receive'],
+ *   statuses: ['success']
  * });
  * ```
  */
 
 export { TransactionService } from './transaction.service';
+export { DEFAULT_ORDER_TYPES } from './types';
 export type {
   Order,
   OrderType,
@@ -37,9 +28,4 @@ export type {
   TransferStatus,
   TransactionQueryParams,
   TransactionListResponse,
-  TransferRequest,
-  TransferResponse,
 } from './types';
-
-
-

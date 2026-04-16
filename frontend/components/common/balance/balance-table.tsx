@@ -4,7 +4,7 @@ import * as React from "react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TransactionTableList } from "@/components/common/general/table-data"
 import { TransactionProvider, useTransaction } from "@/contexts/transaction-context"
-import type { OrderType } from "@/lib/services"
+import { DEFAULT_ORDER_TYPES, type OrderType } from "@/lib/services"
 import { formatLocalDate } from "@/lib/utils"
 
 /** 标签触发器样式 */
@@ -34,7 +34,6 @@ const TAB_TRIGGER_STYLES =
 const TABS = [
   { value: "receive" as const, label: "积分收益" },
   { value: "payment" as const, label: "积分消耗" },
-  { value: "transfer" as const, label: "积分转移" },
   { value: "community" as const, label: "社区划转" },
   { value: "online" as const, label: "在线流转" },
   { value: "all" as const, label: "所有活动" },
@@ -128,7 +127,7 @@ const TransactionList = React.memo(function TransactionList({ type }: { type?: O
   React.useEffect(() => {
     fetchTransactions({
       page: 1,
-      types: type ? [type] : undefined,
+      types: type ? [type] : DEFAULT_ORDER_TYPES,
       startTime: lastParams.startTime,
       endTime: lastParams.endTime,
     })
@@ -140,7 +139,12 @@ const TransactionList = React.memo(function TransactionList({ type }: { type?: O
       loading={loading}
       error={error}
       transactions={transactions}
-      onRetry={() => fetchTransactions({ page: 1 })}
+      onRetry={() => fetchTransactions({
+        page: 1,
+        types: type ? [type] : DEFAULT_ORDER_TYPES,
+        startTime: lastParams.startTime,
+        endTime: lastParams.endTime,
+      })}
     />
   )
 })

@@ -110,7 +110,7 @@ lib/services/
 │   └── index.ts               # 模块导出 + 文档
 │
 ├── transaction/               # 交易服务模块
-│   ├── transaction.service.ts # 交易记录、转账
+│   ├── transaction.service.ts # 交易记录
 │   ├── types.ts               # Order、TransactionQueryParams 等
 │   └── index.ts               # 模块导出 + 文档
 │

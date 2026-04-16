@@ -259,21 +259,8 @@ export const howToUseSections: PolicySection[] = [
     )
   },
   {
-    value: "transfer",
-    title: "7. 积分转移",
-    content: (
-      <div className="space-y-4 text-sm leading-relaxed">
-        <div className="bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 px-3 py-2 rounded-lg mt-4">
-          <p className="m-0 text-sm">
-            <strong>重要：</strong>积分转移功能已下架，请遵循积分使用规范并使用正确流转功能继续！
-          </p>
-        </div>
-      </div>
-    )
-  },
-  {
     value: "community-balance",
-    title: "8. 社区积分",
+    title: "7. 社区积分",
     content: (
       <div className="space-y-4 text-sm leading-relaxed">
         <p>您的 LINUX DO Credit 平台基础积分主要由 <strong>社区积分 (Community Balance)</strong> 划转而来。</p>
@@ -297,7 +284,7 @@ export const howToUseSections: PolicySection[] = [
   },
   {
     value: "settings",
-    title: "9. 账户设置",
+    title: "8. 账户设置",
     content: (
       <div className="space-y-4 text-sm leading-relaxed">
         <p>您可以在 <strong>设置 (Settings)</strong> 页面管理您的账户信息。</p>
@@ -312,7 +299,7 @@ export const howToUseSections: PolicySection[] = [
   },
   {
     value: "scripts",
-    title: "10. 辅助脚本",
+    title: "9. 辅助脚本",
     content: (
       <div className="space-y-4 text-sm leading-relaxed">
         <p>为了方便用户随时查看当前的实时积分收入，我们提供了开源的 Userscript 脚本。</p>

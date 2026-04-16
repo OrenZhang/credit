@@ -7,12 +7,10 @@ import { Community } from "@/components/common/trade/community"
 import { Payment } from "@/components/common/trade/payment"
 import { Receive } from "@/components/common/trade/receive"
 import { TradeTable } from "@/components/common/trade/trade-table"
-import { Transfer } from "@/components/common/trade/transfer"
 import { Online } from "@/components/common/trade/online"
 import { RedEnvelope, RedEnvelopeList } from "@/components/common/trade/red-envelope"
 import { TransactionProvider } from "@/contexts/transaction-context"
 import services from "@/lib/services"
-import type { OrderType } from "@/lib/services"
 
 /** 标签触发器样式 */
 const TAB_TRIGGER_STYLES =
@@ -38,20 +36,14 @@ const TAB_TRIGGER_STYLES =
   "flex-none"
 
 /** 标签值类型 */
-type TabValue = OrderType | 'all' | 'redenvelope'
+type TabValue = 'receive' | 'payment' | 'community' | 'online' | 'all' | 'redenvelope'
 
 /** 页面组件映射表 */
 const PAGE_COMPONENTS: Record<TabValue, React.ComponentType> = {
   receive: Receive,
   payment: Payment,
-  transfer: Transfer,
   community: Community,
   online: Online,
-  distribute: () => null,
-  test: () => null,
-  red_envelope_send: RedEnvelope,
-  red_envelope_receive: RedEnvelope,
-  red_envelope_refund: RedEnvelope,
   redenvelope: RedEnvelope,
   all: AllActivity,
 }
@@ -80,9 +72,9 @@ export function TradeMain() {
   }, [])
 
   /* 获取活动类型 */
-  const getOrderType = (tab: TabValue): OrderType | undefined => {
-    if (tab === 'all') return undefined
-    return tab as OrderType
+  const getOrderType = (tab: TabValue) => {
+    if (tab === 'all' || tab === 'redenvelope') return undefined
+    return tab
   }
 
   /* 渲染活动页面内容 */
@@ -119,7 +111,6 @@ export function TradeMain() {
           <TabsList className="flex p-0 gap-4 rounded-none w-full bg-transparent justify-start border-b border-border overflow-x-auto overflow-y-hidden">
             <TabsTrigger value="receive" className={TAB_TRIGGER_STYLES}>积分收益</TabsTrigger>
             <TabsTrigger value="payment" className={TAB_TRIGGER_STYLES}>积分消耗</TabsTrigger>
-            <TabsTrigger value="transfer" className={TAB_TRIGGER_STYLES}>积分转移</TabsTrigger>
             <TabsTrigger value="community" className={TAB_TRIGGER_STYLES}>社区划转</TabsTrigger>
             <TabsTrigger value="online" className={TAB_TRIGGER_STYLES}>在线流转</TabsTrigger>
             {redEnvelopeEnabled && (

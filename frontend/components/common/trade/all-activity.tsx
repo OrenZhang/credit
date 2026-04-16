@@ -1,5 +1,5 @@
 import * as React from "react"
-import { ArrowRightLeft, TrendingDown, TrendingUp, Users } from "lucide-react"
+import { TrendingDown, TrendingUp, Users } from "lucide-react"
 import { CountingNumber } from "@/components/animate-ui/primitives/texts/counting-number"
 import { useUser } from "@/contexts/user-context"
 
@@ -21,7 +21,6 @@ export function AllActivity() {
   const stats = React.useMemo(() => ({
     totalReceive: parseFloat(user?.total_receive || '0'),
     totalPayment: parseFloat(user?.total_payment || '0'),
-    totalTransfer: parseFloat(user?.total_transfer || '0'),
     totalCommunity: parseFloat(user?.total_community || '0')
   }), [user])
 
@@ -42,13 +41,6 @@ export function AllActivity() {
       bgColor: "bg-red-100 dark:bg-red-900/20"
     },
     {
-      title: "总转移",
-      value: stats.totalTransfer,
-      icon: ArrowRightLeft,
-      color: "text-blue-600",
-      bgColor: "bg-blue-100 dark:bg-blue-900/20"
-    },
-    {
       title: "总划转",
       value: stats.totalCommunity,
       icon: Users,
@@ -60,7 +52,7 @@ export function AllActivity() {
   return (
     <div className="space-y-4">
       <h2 className="font-semibold">数据概览</h2>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         {statCards.map((card) => {
           const IconComponent = card.icon
           return (

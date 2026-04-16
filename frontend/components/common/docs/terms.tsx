@@ -78,7 +78,7 @@ export const termsSections: PolicySection[] = [
     content: (
       <div className="space-y-4 text-sm leading-relaxed">
         <p><strong>5.1 资产性质：</strong>平台内流转的“余额”、“积分”等均为<strong>社区虚拟积分</strong>，仅代表您在社区生态内的活跃度或贡献值。它们<strong>不具有任何货币属性</strong>，严禁兑换为法定货币，也不可用于任何非平台许可的商业交易。</p>
-        <p><strong>5.2 交易不可逆：</strong>鉴于网络技术的实时性，<strong>一旦积分转移指令被执行，该操作即不可撤销。</strong>请您在确认消耗或转移积分前，务必仔细核对服务方信息。</p>
+        <p><strong>5.2 交易不可逆：</strong>鉴于网络技术的实时性，<strong>一旦积分消耗或划转指令被执行，该操作即不可撤销。</strong>请您在确认相关积分活动前，务必仔细核对服务方信息。</p>
         <p><strong>5.3 规则说明：</strong>为营造良好的社区积分环境，平台有权收取一定的服务费（以积分为结算单位）进行调控，具体规则以控制台公示为准。平台保留根据社区运营状况调整积分规则的权利。</p>
       </div>
     ),

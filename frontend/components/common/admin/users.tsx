@@ -307,7 +307,6 @@ export function UsersManager() {
                 <TableHead className="text-right whitespace-nowrap min-w-[80px] py-2 h-8 font-mono">支付分</TableHead>
                 <TableHead className="text-right whitespace-nowrap min-w-[80px] py-2 h-8 font-mono">总收益</TableHead>
                 <TableHead className="text-right whitespace-nowrap min-w-[80px] py-2 h-8 font-mono">总消耗</TableHead>
-                <TableHead className="text-right whitespace-nowrap min-w-[80px] py-2 h-8 font-mono">总转移</TableHead>
                 <TableHead className="text-right whitespace-nowrap min-w-[80px] py-2 h-8 font-mono is-last-money">总划转</TableHead>
                 <TableHead className="whitespace-nowrap min-w-[140px] py-2 h-8 pl-4">上次登陆</TableHead>
                 <TableHead className="whitespace-nowrap min-w-[140px] py-2 h-8">注册时间</TableHead>
@@ -360,9 +359,6 @@ export function UsersManager() {
                   </TableCell>
                   <TableCell className="text-right font-mono text-[11px] text-red-500 py-1">
                     {Number(user.total_payment).toFixed(2)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-[11px] text-blue-500 py-1">
-                    {Number(user.total_transfer).toFixed(2)}
                   </TableCell>
                   <TableCell className="text-right font-mono text-[11px] text-purple-500 py-1 is-last-money">
                     {Number(user.total_community).toFixed(2)}
@@ -528,10 +524,6 @@ export function UsersManager() {
                         <div className="flex items-center justify-between p-3.5">
                           <span className="text-[10px]">累计支出</span>
                           <span className="font-mono text-[10px] font-medium text-red-500">{Number(selectedUser.total_payment) === 0 ? '0.00' : `-${ Number(selectedUser.total_payment).toFixed(2) }`}</span>
-                        </div>
-                        <div className="flex items-center justify-between p-3.5">
-                          <span className="text-[10px]">累计转账</span>
-                          <span className="font-mono text-[10px] font-medium text-blue-500">{Number(selectedUser.total_transfer).toFixed(2)}</span>
                         </div>
                       </div>
                     </div>

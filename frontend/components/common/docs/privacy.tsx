@@ -23,7 +23,7 @@ export const privacySections: PolicySection[] = [
           </div>
           <div>
             <span className="font-semibold text-foreground">1.3 交易与资产信息：</span>
-            <p className="mt-1 text-muted-foreground">若您使用支付或转账功能，我们将记录您的商户订单号、交易金额、交易时间、交易状态摘要。这些信息是账务核对的必要依据。</p>
+            <p className="mt-1 text-muted-foreground">若您使用支付功能，我们将记录您的商户订单号、交易金额、交易时间、交易状态摘要。这些信息是账务核对的必要依据。</p>
           </div>
         </div>
       </div>
