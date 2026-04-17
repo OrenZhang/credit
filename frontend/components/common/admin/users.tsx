@@ -29,11 +29,13 @@ export function UsersManager() {
     error,
     page,
     pageSize,
-    searchKeyword,
+    searchUserId,
+    searchUsername,
     statusFilter,
     setPage,
     setPageSize,
-    setSearchKeyword,
+    setSearchUserId,
+    setSearchUsername,
     setStatusFilter,
     fetchUsers,
     updateUserStatus
@@ -81,6 +83,7 @@ export function UsersManager() {
   }
 
   const totalPages = Math.ceil(total / pageSize)
+  const hasSearchFilter = Boolean(searchUserId || searchUsername)
 
   const renderFilterBar = () => (
     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
@@ -92,12 +95,12 @@ export function UsersManager() {
               size="sm"
               className={cn(
                 "h-5 border-dashed text-[10px] font-medium shadow-none focus-visible:ring-0",
-                searchKeyword && "bg-primary/5 border-primary/20"
+                hasSearchFilter && "bg-primary/5 border-primary/20"
               )}
             >
               <Search className="size-3 mr-1" />
               搜索
-              {searchKeyword && (
+              {hasSearchFilter && (
                 <>
                   <Separator orientation="vertical" className="mx-1" />
                   <Badge
@@ -110,20 +113,29 @@ export function UsersManager() {
               )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-[200px] p-3" align="start">
-            <div className="space-y-2">
+          <DropdownMenuContent className="w-56 p-3" align="start">
+            <div className="space-y-2.5">
               <input
-                className="w-full h-8 px-2 text-xs border border-dashed rounded-md outline-none focus:border-primary bg-background"
-                placeholder="输入 ID 或 username..."
-                value={searchKeyword}
-                onChange={(e) => setSearchKeyword(e.target.value)}
+                className="w-full h-7 px-2 text-xs border border-dashed rounded-md outline-none focus:border-primary bg-background"
+                placeholder="输入用户 ID..."
+                value={searchUserId}
+                onChange={(e) => setSearchUserId(e.target.value)}
               />
-              {searchKeyword && (
+              <input
+                className="w-full h-7 px-2 text-xs border border-dashed rounded-md outline-none focus:border-primary bg-background"
+                placeholder="输入 username..."
+                value={searchUsername}
+                onChange={(e) => setSearchUsername(e.target.value)}
+              />
+              {hasSearchFilter && (
                 <Button
                   variant="ghost"
                   size="sm"
                   className="w-full h-6 text-xs"
-                  onClick={() => setSearchKeyword("")}
+                  onClick={() => {
+                    setSearchUserId("")
+                    setSearchUsername("")
+                  }}
                 >
                   清除
                 </Button>
@@ -194,14 +206,15 @@ export function UsersManager() {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {(searchKeyword || statusFilter !== 'all') && (
+        {(hasSearchFilter || statusFilter !== 'all') && (
           <>
             <Separator orientation="vertical" className="h-6 hidden sm:block" />
             <Button
               variant="ghost"
               size="sm"
               onClick={() => {
-                setSearchKeyword("")
+                setSearchUserId("")
+                setSearchUsername("")
                 setStatusFilter('all')
               }}
               className="h-5 px-2 lg:px-3 text-[11px] font-medium text-muted-foreground hover:text-foreground"

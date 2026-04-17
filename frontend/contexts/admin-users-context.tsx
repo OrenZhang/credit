@@ -9,7 +9,8 @@ import { AdminService, AdminUser, ListUsersRequest } from "@/lib/services"
 export interface UserQueryParams {
   page: number
   page_size: number
-  keyword?: string
+  user_id?: string
+  username?: string
   status?: 'all' | 'active' | 'inactive'
 }
 
@@ -23,13 +24,15 @@ interface AdminUsersContextState {
   // Params
   page: number
   pageSize: number
-  searchKeyword: string
+  searchUserId: string
+  searchUsername: string
   statusFilter: 'all' | 'active' | 'inactive'
 
   // Actions
   setPage: (page: number) => void
   setPageSize: (size: number) => void
-  setSearchKeyword: (keyword: string) => void
+  setSearchUserId: (userId: string) => void
+  setSearchUsername: (username: string) => void
   setStatusFilter: (status: 'all' | 'active' | 'inactive') => void
 
   fetchUsers: (force?: boolean) => Promise<void>
@@ -51,9 +54,11 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
   // Query Params State
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
-  const [searchKeyword, setSearchKeyword] = useState("")
+  const [searchUserId, setSearchUserId] = useState("")
+  const [searchUsername, setSearchUsername] = useState("")
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
-  const [debouncedSearch, setDebouncedSearch] = useState("")
+  const [debouncedSearchUserId, setDebouncedSearchUserId] = useState("")
+  const [debouncedSearchUsername, setDebouncedSearchUsername] = useState("")
 
   // Cache
   const cacheRef = useRef<Record<string, { data: AdminUser[], total: number, timestamp: number }>>({})
@@ -62,13 +67,14 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
   // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedSearch(searchKeyword)
-      if (searchKeyword !== debouncedSearch) {
+      setDebouncedSearchUserId(searchUserId)
+      setDebouncedSearchUsername(searchUsername)
+      if (searchUserId !== debouncedSearchUserId || searchUsername !== debouncedSearchUsername) {
         setPage(1) // Reset to page 1 on search change
       }
     }, 500)
     return () => clearTimeout(timer)
-  }, [searchKeyword, debouncedSearch])
+  }, [searchUserId, searchUsername, debouncedSearchUserId, debouncedSearchUsername])
 
   const generateCacheKey = (params: UserQueryParams) => {
     return JSON.stringify(params)
@@ -78,7 +84,8 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
     const params: UserQueryParams = {
       page,
       page_size: pageSize,
-      keyword: debouncedSearch || undefined,
+      user_id: debouncedSearchUserId || undefined,
+      username: debouncedSearchUsername || undefined,
       status: statusFilter
     }
 
@@ -115,7 +122,8 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
       const requestParams: ListUsersRequest = {
         page,
         page_size: pageSize,
-        keyword: debouncedSearch || undefined
+        user_id: debouncedSearchUserId || undefined,
+        username: debouncedSearchUsername || undefined
       }
 
       const response = await AdminService.listUsers(requestParams)
@@ -148,7 +156,7 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
         setLoading(false)
       }
     }
-  }, [page, pageSize, debouncedSearch, statusFilter])
+  }, [page, pageSize, debouncedSearchUserId, debouncedSearchUsername, statusFilter])
 
   // Removed auto-fetch useEffect. Consumer (UsersManager) should trigger fetch.
 
@@ -187,11 +195,13 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
     error,
     page,
     pageSize,
-    searchKeyword,
+    searchUserId,
+    searchUsername,
     statusFilter,
     setPage,
     setPageSize,
-    setSearchKeyword,
+    setSearchUserId,
+    setSearchUsername,
     setStatusFilter,
     fetchUsers,
     refresh,

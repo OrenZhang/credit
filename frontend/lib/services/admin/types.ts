@@ -206,9 +206,9 @@ export interface ListUsersRequest {
   page: number;
   /** 每页数量（1-100） */
   page_size: number;
-  /** 用户 ID 或用户名过滤（可选） */
-  keyword?: string;
-  /** 用户名前缀过滤（兼容旧参数，可选） */
+  /** 用户 ID 精确过滤（可选） */
+  user_id?: string;
+  /** 用户名前缀过滤（可选） */
   username?: string;
 }
 

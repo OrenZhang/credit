@@ -792,9 +792,6 @@ paths:
     get:
       parameters:
       - in: query
-        name: keyword
-        type: string
-      - in: query
         minimum: 1
         name: page
         type: integer
@@ -803,6 +800,9 @@ paths:
         minimum: 1
         name: page_size
         type: integer
+      - in: query
+        name: user_id
+        type: string
       - in: query
         name: username
         type: string

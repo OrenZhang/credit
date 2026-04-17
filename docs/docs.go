@@ -427,11 +427,6 @@ const docTemplate = `{
                 ],
                 "parameters": [
                     {
-                        "type": "string",
-                        "name": "keyword",
-                        "in": "query"
-                    },
-                    {
                         "minimum": 1,
                         "type": "integer",
                         "name": "page",
@@ -442,6 +437,11 @@ const docTemplate = `{
                         "minimum": 1,
                         "type": "integer",
                         "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "user_id",
                         "in": "query"
                     },
                     {

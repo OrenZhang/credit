@@ -34,7 +34,7 @@ import (
 type listUsersRequest struct {
 	Page     int    `form:"page" binding:"min=1"`
 	PageSize int    `form:"page_size" binding:"min=1,max=100"`
-	Keyword  string `form:"keyword"`
+	UserID   string `form:"user_id"`
 	Username string `form:"username"`
 }
 
@@ -82,17 +82,20 @@ func ListUsers(c *gin.Context) {
 
 	query := db.DB(c.Request.Context()).Table("users")
 
-	keyword := strings.TrimSpace(req.Keyword)
-	if keyword == "" {
-		keyword = strings.TrimSpace(req.Username)
+	userID := strings.TrimSpace(req.UserID)
+	username := strings.TrimSpace(req.Username)
+
+	if userID != "" {
+		parsedUserID, err := strconv.ParseUint(userID, 10, 64)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, util.Err("invalid user_id"))
+			return
+		}
+		query = query.Where("id = ?", parsedUserID)
 	}
 
-	if keyword != "" {
-		if userID, err := strconv.ParseUint(keyword, 10, 64); err == nil {
-			query = query.Where("id = ? OR username LIKE ?", userID, keyword+"%")
-		} else {
-			query = query.Where("username LIKE ?", keyword+"%")
-		}
+	if username != "" {
+		query = query.Where("username LIKE ?", username+"%")
 	}
 
 	if err := query.Count(&total).Error; err != nil {
