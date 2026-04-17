@@ -440,7 +440,7 @@ const docTemplate = `{
                         "in": "query"
                     },
                     {
-                        "type": "string",
+                        "type": "integer",
                         "name": "user_id",
                         "in": "query"
                     },

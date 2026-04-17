@@ -18,7 +18,6 @@ package user
 
 import (
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -32,10 +31,10 @@ import (
 
 // listUsersRequest 用户列表查询请求
 type listUsersRequest struct {
-	Page     int    `form:"page" binding:"min=1"`
-	PageSize int    `form:"page_size" binding:"min=1,max=100"`
-	UserID   string `form:"user_id"`
-	Username string `form:"username"`
+	Page     int     `form:"page" binding:"min=1"`
+	PageSize int     `form:"page_size" binding:"min=1,max=100"`
+	UserID   *uint64 `form:"user_id" binding:"omitempty,gt=0"`
+	Username string  `form:"username"`
 }
 
 type user struct {
@@ -82,16 +81,10 @@ func ListUsers(c *gin.Context) {
 
 	query := db.DB(c.Request.Context()).Table("users")
 
-	userID := strings.TrimSpace(req.UserID)
 	username := strings.TrimSpace(req.Username)
 
-	if userID != "" {
-		parsedUserID, err := strconv.ParseUint(userID, 10, 64)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, util.Err("invalid user_id"))
-			return
-		}
-		query = query.Where("id = ?", parsedUserID)
+	if req.UserID != nil {
+		query = query.Where("id = ?", *req.UserID)
 	}
 
 	if username != "" {

@@ -802,7 +802,7 @@ paths:
         type: integer
       - in: query
         name: user_id
-        type: string
+        type: integer
       - in: query
         name: username
         type: string
