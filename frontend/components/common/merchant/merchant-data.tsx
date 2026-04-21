@@ -7,7 +7,7 @@ import { Undo2, FileText, Link2 } from "lucide-react"
 import { toast } from "sonner"
 import { TableFilter, mapDisplayStatusToQuery, type DisplayOrderStatus, type SearchValues } from "@/components/common/general/table-filter"
 import { TransactionTableList } from "@/components/common/general/table-data"
-import { DEFAULT_ORDER_TYPES, type MerchantAPIKey, type OrderType } from "@/lib/services"
+import { type MerchantAPIKey, type OrderType } from "@/lib/services"
 import { TransactionProvider, useTransaction } from "@/contexts/transaction-context"
 import { formatLocalDate } from "@/lib/utils"
 
@@ -72,7 +72,7 @@ function MerchantDataContent({ apiKey }: MerchantDataProps) {
     return {
       page,
       page_size: pageSize,
-      types: selectedTypes.length > 0 ? selectedTypes : DEFAULT_ORDER_TYPES,
+      types: selectedTypes.length > 0 ? selectedTypes : undefined,
       ...stateQuery,
       startTime: dateRange ? formatLocalDate(dateRange.from) : undefined,
       endTime: dateRange ? (() => {
