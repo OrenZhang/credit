@@ -72,7 +72,7 @@ function MerchantDataContent({ apiKey }: MerchantDataProps) {
     return {
       page,
       page_size: pageSize,
-      types: selectedTypes.length > 0 ? selectedTypes : DEFAULT_ORDER_TYPES,
+      types: selectedTypes.length > 0 ? selectedTypes : undefined,
       ...stateQuery,
       startTime: dateRange ? formatLocalDate(dateRange.from) : undefined,
       endTime: dateRange ? (() => {
